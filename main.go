@@ -32,7 +32,7 @@ var current atomic.Int64
 
 func rateLimiter(w http.ResponseWriter, r *http.Request) bool {
 	client, _, _ := net.SplitHostPort(r.RemoteAddr)
-	fmt.Printf("client:%s\n", client)
+	// fmt.Printf("client:%s\n", client)
 	clientMu.RLock()
 	_, exists := clients[client]
 	clientMu.RUnlock()
@@ -52,7 +52,7 @@ func rateLimiter(w http.ResponseWriter, r *http.Request) bool {
 			return false
 		} else {
 			clients[client].Count++
-			fmt.Printf("clients:%s,count:%d", client, clients[client].Count)
+			// fmt.Printf("clients:%s,count:%d", client, clients[client].Count)
 		}
 		clientMu.Unlock()
 		return true
