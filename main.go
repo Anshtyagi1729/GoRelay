@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -35,7 +36,9 @@ func main() {
 	log.Printf("reverse proxy started at %s for %d backend", cfg.Port, len(backends))
 	go healthchecks()
 	mux.HandleFunc("/", proxyhandler)
-	m := model{backends: listBackends()}
+	ti := textinput.New()
+	ti.Placeholder = "localhost:8084"
+	m := model{backends: listBackends(), input: ti}
 	p := tea.NewProgram(m)
 	go p.Run()
 	http.ListenAndServe(cfg.Port, mux)
