@@ -73,6 +73,9 @@ func proxyhandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}
+	host.Requests.Add(1)
+	latency := time.Since(start)
+	host.Latency = latency
 	for k, vv := range res.Header {
 		for _, v := range vv {
 			w.Header().Add(k, v)
