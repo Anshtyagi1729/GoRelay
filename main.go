@@ -4,13 +4,23 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync/atomic"
 )
+
+var backends = []string{
+	"localhost:8081",
+	"localhost:8082",
+	"localhost:8083",
+}
+var current atomic.Int64
 
 func proxyhandler(w http.ResponseWriter, r *http.Request) {
 	//copy the incoming request and change the host to backend
+
 	clone := r.Clone(r.Context())
+	idx := current.Add(1) % int64(len(backends))
 	clone.URL.Scheme = "http"
-	clone.URL.Host = "localhost:8081"
+	clone.URL.Host = backends[idx]
 	//roundtrip and handle the error
 	res, err := http.DefaultTransport.RoundTrip(clone)
 	if err != nil {
@@ -28,7 +38,7 @@ func proxyhandler(w http.ResponseWriter, r *http.Request) {
 }
 func main() {
 	mux := http.NewServeMux()
-	fmt.Print("starting server\n")
+	fmt.Print("starting proxy server at :3000\n")
 	mux.HandleFunc("/", proxyhandler)
 	http.ListenAndServe(":3000", mux)
 }
