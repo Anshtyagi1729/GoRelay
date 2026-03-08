@@ -24,6 +24,8 @@ func main() {
 }
 
 //TODO:
-// rate limiting
-// load balancing
 // caching
+//the dashboard and further refactor
+// adding other loadbalancing tricks
+// adding the tls option
+//
