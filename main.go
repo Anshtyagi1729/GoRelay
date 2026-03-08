@@ -3,9 +3,12 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 type ClientInfo struct {
@@ -19,6 +22,8 @@ var clientMu sync.RWMutex
 var current atomic.Int64
 
 func main() {
+	logFile, _ := os.OpenFile("gorelay.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	log.SetOutput(logFile)
 	cfg, err := loadConfig("config.json")
 	if err != nil {
 		log.Fatalf("failed to load config:%v\n", err)
@@ -30,5 +35,8 @@ func main() {
 	log.Printf("reverse proxy started at %s for %d backend", cfg.Port, len(backends))
 	go healthchecks()
 	mux.HandleFunc("/", proxyhandler)
+	m := model{backends: listBackends()}
+	p := tea.NewProgram(m)
+	go p.Run()
 	http.ListenAndServe(cfg.Port, mux)
 }

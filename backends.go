@@ -13,6 +13,8 @@ type Backend struct {
 	Latency  time.Duration
 }
 
+var totalRequests atomic.Int64
+var totalRateLimited atomic.Int64
 var backends []*Backend
 var backendMu sync.RWMutex
 
@@ -25,7 +27,7 @@ func addBackend(address string) {
 	backends = append(backends, &Backend{Address: address, Healthy: true})
 }
 
-func listbackend() []*Backend {
+func listBackends() []*Backend {
 	backendMu.RLock()
 	defer backendMu.RUnlock()
 	return backends

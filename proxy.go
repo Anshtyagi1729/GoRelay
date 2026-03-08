@@ -28,6 +28,7 @@ func rateLimiter(w http.ResponseWriter, r *http.Request) bool {
 			clientMu.Unlock()
 			http.Error(w, "Rate limited", http.StatusTooManyRequests)
 			log.Printf("client : %s is rate limited", client)
+			totalRateLimited.Add(1)
 			return false
 		} else {
 			clients[client].Count++
@@ -73,6 +74,7 @@ func proxyhandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}
+	totalRequests.Add(1)
 	host.Requests.Add(1)
 	latency := time.Since(start)
 	host.Latency = latency
