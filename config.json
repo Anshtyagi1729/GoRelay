@@ -1,0 +1,8 @@
+{
+  "port": ":3000",
+  "backends": ["localhost:8081", "localhost:8082", "localhost:8083"],
+  "rate_limit": 100,
+  "window_second": 10,
+  "timeout_second": 5,
+  "health_check_interval": 10
+}

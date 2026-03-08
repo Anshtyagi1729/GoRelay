@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 )
 
+// dummy file for multiple backends
 func backend1hand(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("<html><body><h1>hello from backend1</h1></body></html>"))
 }
@@ -15,6 +17,7 @@ func main() {
 		w.Write([]byte("<html><body><h1>hello from backend</h1></body></html>"))
 	})
 	mux1 := http.NewServeMux()
+	fmt.Printf("starting all the servers")
 	mux1.HandleFunc("/", backend1hand)
 	mux2 := http.NewServeMux()
 	mux2.HandleFunc("/", backend2hand)

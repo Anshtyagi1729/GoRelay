@@ -21,12 +21,7 @@ type ClientInfo struct {
 
 var clients = map[string]*ClientInfo{}
 var clientMu sync.RWMutex
-
-var backends = []*Backend{
-	{Address: "localhost:8081", Healthy: true},
-	{Address: "localhost:8082", Healthy: true},
-	{Address: "localhost:8083", Healthy: true},
-}
+var backends []*Backend
 var backendMu sync.RWMutex
 var current atomic.Int64
 
@@ -123,9 +118,16 @@ func proxyhandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("client:%s backend:%s status:%d duration:%v\n", client, host.Address, res.StatusCode, time.Since(start))
 }
 func main() {
+	cfg, err := loadConfig("config.json")
+	if err != nil {
+		log.Fatalf("failed to load config:%v\n", err)
+	}
+	for _, addr := range cfg.Backends {
+		backends = append(backends, &Backend{Address: addr, Healthy: true})
+	}
 	mux := http.NewServeMux()
+	log.Printf("reverse proxy started at %s for %d backend", cfg.Port, len(backends))
 	go healthchecks()
 	mux.HandleFunc("/", proxyhandler)
-	http.ListenAndServe(":3000", mux)
-	log.Printf("reverse proxy started at :3000 for %d backend", len(backends))
+	http.ListenAndServe(cfg.Port, mux)
 }
