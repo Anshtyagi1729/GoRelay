@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"sync"
 	"sync/atomic"
@@ -13,6 +14,13 @@ type Backend struct {
 	Address string
 	Healthy bool
 }
+type ClientInfo struct {
+	Count       int
+	WindowStart time.Time
+}
+
+var clients = map[string]*ClientInfo{}
+var clientMu sync.RWMutex
 
 var backends = []*Backend{
 	{Address: "localhost:8081", Healthy: true},
@@ -22,11 +30,39 @@ var backends = []*Backend{
 var backendMu sync.RWMutex
 var current atomic.Int64
 
+func rateLimiter(w http.ResponseWriter, r *http.Request) bool {
+	client, _, _ := net.SplitHostPort(r.RemoteAddr)
+	fmt.Printf("client:%s\n", client)
+	clientMu.RLock()
+	_, exists := clients[client]
+	clientMu.RUnlock()
+	if !exists {
+		clientMu.Lock()
+		clients[client] = &ClientInfo{Count: 1, WindowStart: time.Now()}
+		clientMu.Unlock()
+		return true
+	} else {
+		clientMu.Lock()
+		if time.Since(clients[client].WindowStart) > 10*time.Second {
+			clients[client].Count = 1
+			clients[client].WindowStart = time.Now()
+		} else if clients[client].Count > 100 {
+			clientMu.Unlock()
+			http.Error(w, "Rate limited", http.StatusTooManyRequests)
+			return false
+		} else {
+			clients[client].Count++
+			fmt.Printf("clients:%s,count:%d", client, clients[client].Count)
+		}
+		clientMu.Unlock()
+		return true
+	}
+}
 func healthchecks() {
 	for {
 		time.Sleep(10 * time.Second)
 		for _, backend := range backends {
-			_, err := http.Get(backend.Address)
+			_, err := http.Get("http://" + backend.Address)
 			if err != nil {
 				backendMu.Lock()
 				backend.Healthy = false
@@ -41,6 +77,9 @@ func healthchecks() {
 }
 func proxyhandler(w http.ResponseWriter, r *http.Request) {
 	//copy the incoming request and change the host to backend
+	if !rateLimiter(w, r) {
+		return
+	}
 	clone := r.Clone(r.Context())
 	idx := current.Add(1) % int64(len(backends))
 	host := backends[idx]

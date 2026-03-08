@@ -24,8 +24,6 @@ func main() {
 }
 
 //TODO:
-// multiple backends
-// roundrobbin
 // rate limiting
 // load balancing
 // caching
